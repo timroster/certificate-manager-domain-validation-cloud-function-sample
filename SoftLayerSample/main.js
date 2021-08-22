@@ -41,7 +41,11 @@ const getPublicKey = async (body, certificateManagerApiUrl) => {
  * @returns {Promise<void>}
  */
 const addTxtRecord = async (zoneId, payload, userInfo) => {
-    const recordName = payload.challenge.txt_record_name;
+    let fullname = payload.domain;
+    //remove wildcard in case its wildcard certificate.
+    fullname = fullname.replace('*.', '');
+    const hostname = fullname.split(".")[0]
+    const recordName = payload.challenge.txt_record_name + '.' + hostname;
     const recordValue = payload.challenge.txt_record_val;
     console.log(`Add TXT record "${recordValue}" to zone ${zoneId}`);
     const options = {
@@ -106,7 +110,11 @@ const getZoneIdByDomain = async (domain, userInfo) => {
  * @returns {Promise<[]>}
  */
 const getTxtRecords = async (zoneId, payload, userInfo) => {
-    const recordName = payload.challenge.txt_record_name;
+    let fullname = payload.domain;
+    //remove wildcard in case its wildcard certificate.
+    fullname = fullname.replace('*.', '');
+    const hostname = fullname.split(".")[0]
+    const recordName = payload.challenge.txt_record_name + '.' + hostname;
     const recordValue = payload.challenge.txt_record_val;
     console.log(`Get records named ${recordName} from zone ${zoneId}`);
     const options = {
@@ -166,9 +174,12 @@ const removeTxtRecord = async (recordId, userInfo) => {
  */
 const setChallenge = async (payload, userInfo) => {
     console.log(`Set challenge: '${payload.domain} : ${JSON.stringify(payload.challenge)}`);
-    let domain = payload.domain;
+    let fullname = payload.domain;
     //remove wildcard in case its wildcard certificate.
-    domain = domain.replace('*.', '');
+    fullname = fullname.replace('*.', '');
+    const hostname = fullname.split(".")[0]
+    //drop host or subdomain component to find zone
+    let domain = fullname.replace(hostname + '.','')
     const zoneId = await getZoneIdByDomain(domain, userInfo);
     await addTxtRecord(zoneId, payload, userInfo);
 };
@@ -181,9 +192,12 @@ const setChallenge = async (payload, userInfo) => {
  */
 const removeChallenge = async (payload, userInfo) => {
     console.log(`Remove challenge: '${payload.domain} : ${JSON.stringify(payload.challenge)}`);
-    let domain = payload.domain;
+    let fullname = payload.domain;
     //remove wildcard in case its wildcard certificate.
-    domain = domain.replace('*.', '');
+    fullname = fullname.replace('*.', '');
+    const hostname = fullname.split(".")[0]
+    //drop host or subdomain component to find zone
+    let domain = fullname.replace(hostname + '.','')
     const zoneId = await getZoneIdByDomain(domain, userInfo);
     const records = await getTxtRecords(zoneId, payload, userInfo);
     await Promise.all(records.map(r => removeTxtRecord(r.id, userInfo).catch()));
